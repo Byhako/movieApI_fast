@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Path, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 import datetime
 import data
 
@@ -24,24 +24,24 @@ class Movie(BaseModel):
 def message():
     return HTMLResponse("<h1>Hola Ruben</h1>")
 
-@app.get('/movies', tags=['Movies'])
-def get_movies():
-    return movies
+@app.get('/movies', tags=['Movies'], response_model=List[Movie])
+def get_movies() -> List[Movie]:
+    return JSONResponse(content=movies)
 
-@app.get('/movies/{id}', tags=['Movies'])
-def get_movie(id: int = Path(ge=1, le=100)):
-    movie = filter(lambda x: x['id'] == id, movies )
-    return list(movie)
+@app.get('/movies/{id}', tags=['Movies'], response_model=Movie)
+def get_movie(id: int = Path(ge=1, le=100)) -> Movie:
+    movie = list(filter(lambda x: x['id'] == id, movies))
+    return JSONResponse(content=movie)
 
 @app.get('/movies/', tags=['Movies'])
 def get_movies_by_category(category: str = Query(min_length=5, max_length=15)):
-    movie = filter(lambda x: x['category'] == category, movies)
-    return list(movie)
+    movie = list(filter(lambda x: x['category'] == category, movies))
+    return JSONResponse(content=movie)
 
-@app.post('/movie', tags=['Movies'])
-def create_movie(movie: Movie):
+@app.post('/movie', tags=['Movies'], response_model=dict)
+def create_movie(movie: Movie) -> dict:
     movies.append(movie)
-    return movies
+    return JSONResponse(content={"message": "Creada"})
 
 @app.put('/movie/{id}', tags=['Movies'])
 def update_movie(id: int, movie: Movie):
@@ -53,9 +53,9 @@ def update_movie(id: int, movie: Movie):
     movieSelected['rating'] = movie.rating
 
     movies[id-1] = movieSelected
-    return movies
+    return JSONResponse(content={"message": "Actualizada"})
 
 @app.delete('/movie/{id}', tags=['Movies'])
 def delete_movie(id: int):
     movies.pop(id-1)
-    return movies
+    return JSONResponse(content={"message": "Borrada"})
