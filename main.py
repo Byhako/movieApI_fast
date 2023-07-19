@@ -24,26 +24,32 @@ class Movie(BaseModel):
 def message():
     return HTMLResponse("<h1>Hola Ruben</h1>")
 
-@app.get('/movies', tags=['Movies'], response_model=List[Movie])
+@app.get(
+        '/movies',
+        tags=['Movies'],
+        response_model=List[Movie],
+        status_code=200
+    )
 def get_movies() -> List[Movie]:
-    return JSONResponse(content=movies)
+    return JSONResponse(status_code=200, content=movies)
 
 @app.get('/movies/{id}', tags=['Movies'], response_model=Movie)
 def get_movie(id: int = Path(ge=1, le=100)) -> Movie:
     movie = list(filter(lambda x: x['id'] == id, movies))
-    return JSONResponse(content=movie)
+    code = 200 if len(movie) != 0 else 404
+    return JSONResponse(status_code=code, content=movie)
 
 @app.get('/movies/', tags=['Movies'])
 def get_movies_by_category(category: str = Query(min_length=5, max_length=15)):
     movie = list(filter(lambda x: x['category'] == category, movies))
     return JSONResponse(content=movie)
 
-@app.post('/movie', tags=['Movies'], response_model=dict)
+@app.post('/movie', tags=['Movies'], response_model=dict, status_code=201)
 def create_movie(movie: Movie) -> dict:
     movies.append(movie)
-    return JSONResponse(content={"message": "Creada"})
+    return JSONResponse(status_code=201, content={"message": "Creada"})
 
-@app.put('/movie/{id}', tags=['Movies'])
+@app.put('/movie/{id}', tags=['Movies'], status_code=200)
 def update_movie(id: int, movie: Movie):
     movieSelected = list(filter(lambda x: x['id'] == id, movies))[0]
     movieSelected['title'] = movie.title
@@ -53,9 +59,9 @@ def update_movie(id: int, movie: Movie):
     movieSelected['rating'] = movie.rating
 
     movies[id-1] = movieSelected
-    return JSONResponse(content={"message": "Actualizada"})
+    return JSONResponse(status_code=200, content={"message": "Actualizada"})
 
-@app.delete('/movie/{id}', tags=['Movies'])
+@app.delete('/movie/{id}', tags=['Movies'], status_code=200)
 def delete_movie(id: int):
     movies.pop(id-1)
-    return JSONResponse(content={"message": "Borrada"})
+    return JSONResponse(status_code=200, content={"message": "Borrada"})
