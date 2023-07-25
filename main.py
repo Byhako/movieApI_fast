@@ -1,5 +1,9 @@
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Path, Query, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.security.http import HTTPAuthorizationCredentials
+from starlette.requests import Request
+from jwt_manager import create_token, validate_token
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import datetime
@@ -10,6 +14,18 @@ app.title = 'Byhako API'
 app.version = '3.4.1'
 
 movies = data.movies
+
+class User(BaseModel):
+    email: str
+    password: str
+
+class JWTBearer(HTTPBearer):
+    async def __call__(self, request: Request):
+        auth = await super().__call__(request)
+        data = validate_token(auth.credentials)
+        if data.email != 'toto@mail.com' or data.password != 'admin':
+            raise HTTPException(status_code=403, detail='Credenciales invalidas')
+
 
 class Movie(BaseModel):
     id: Optional[int] = None
@@ -24,11 +40,26 @@ class Movie(BaseModel):
 def message():
     return HTMLResponse("<h1>Hola Ruben</h1>")
 
+@app.post('/login', tags=['Home'])
+def login(user: User):
+    if user.email == 'toto@mail.com' and user.password == 'admin':
+        token: str = create_token({
+            "email": user.email,
+            "password": user.password
+        })
+        return JSONResponse(status_code=200, content=token)
+    else:
+        return JSONResponse(status_code=403, content='')
+
+
+# En dependencies tenemos que se debe ejecutar la funcion
+# JWTBearer cuando se realiza la peticion.
 @app.get(
         '/movies',
         tags=['Movies'],
         response_model=List[Movie],
-        status_code=200
+        status_code=200,
+        dependencies=[Depends(JWTBearer())]
     )
 def get_movies() -> List[Movie]:
     return JSONResponse(status_code=200, content=movies)
